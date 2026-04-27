@@ -1,0 +1,16 @@
+---
+- name: Deploy sub2api to Oracle Linux hosts
+  hosts: sub2api_targets
+  gather_facts: true
+  become: true
+
+  pre_tasks:
+    - name: Validate supported OS family
+      ansible.builtin.assert:
+        that:
+          - ansible_os_family == "RedHat"
+        fail_msg: "This playbook currently supports Oracle Linux / RedHat family hosts."
+
+  roles:
+    - role: docker
+    - role: sub2api

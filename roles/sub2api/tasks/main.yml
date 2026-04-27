@@ -1,0 +1,51 @@
+---
+- name: Ensure deployment directory exists
+  ansible.builtin.file:
+    path: "{{ sub2api_deploy_dir }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+
+- name: Download deployment preparation script
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/Wei-Shaw/sub2api/main/deploy/docker-deploy.sh
+    dest: /tmp/sub2api-docker-deploy.sh
+    mode: "0755"
+
+- name: Bootstrap deployment files if missing
+  ansible.builtin.command:
+    cmd: /tmp/sub2api-docker-deploy.sh
+    chdir: "{{ sub2api_deploy_dir }}"
+    creates: "{{ sub2api_deploy_dir }}/docker-compose.yml"
+  become: false
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ sub2api_deploy_dir }}/.env"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+
+- name: Start sub2api stack
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: "{{ sub2api_deploy_dir }}"
+  register: sub2api_compose_up
+  changed_when: >
+    'Started' in sub2api_compose_up.stdout or
+    'Creating' in sub2api_compose_up.stdout or
+    'Recreated' in sub2api_compose_up.stdout or
+    'Pulling' in sub2api_compose_up.stdout
+
+- name: Show compose status
+  ansible.builtin.command:
+    cmd: docker compose ps
+    chdir: "{{ sub2api_deploy_dir }}"
+  register: sub2api_compose_ps
+  changed_when: false
+
+- name: Print compose status
+  ansible.builtin.debug:
+    var: sub2api_compose_ps.stdout_lines
