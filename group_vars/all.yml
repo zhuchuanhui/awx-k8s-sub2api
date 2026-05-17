@@ -15,3 +15,20 @@ sub2api_env:
 
 # AWX ではここを Inventory / Group / Host vars や Survey で上書きしてください。
 sub2api_env_overrides: {}
+
+awx_k8s_work_dir: /home/opc/awx-sub2api
+awx_k8s_subdir: k8s/awx
+awx_admin_user: admin
+awx_nodeport_port: 30080
+awx_pod_network_cidr: 192.168.0.0/16
+awx_kubernetes_repo_version: v1.30
+awx_calico_manifest_url: https://raw.githubusercontent.com/projectcalico/calico/v3.28.1/manifests/calico.yaml
+awx_set_selinux_permissive: true
+awx_manage_firewalld: true
+awx_firewall_ports:
+  - 6443/tcp
+  - 2379-2380/tcp
+  - 10250/tcp
+  - 10259/tcp
+  - 10257/tcp
+  - 30080/tcp

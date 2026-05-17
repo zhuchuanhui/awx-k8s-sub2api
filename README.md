@@ -19,17 +19,19 @@ AWX 向け Ansible 構成です。
 
 ### 構成
 
+- `deploy-awx.yml`: AWX 自体を Kubernetes 上へ配布する playbook
 - `deploy-sub2api.yml`: AWX Job Template で実行するメイン playbook
 - `inventory/hosts.yml`: 初期 inventory の例
 - `roles/docker`: Docker Engine と Compose plugin を導入
+- `roles/awx_k8s`: `kubeadm` ベースの Kubernetes と AWX を導入
 - `roles/sub2api`: 配置ディレクトリを準備して `sub2api` を起動
 - `docs/AWX_K8S_SETUP.md`: 標準 Kubernetes 上で AWX を作る手順
 - `k8s/awx/`: AWX Operator と AWX CR のサンプル
 
 ### AWX セットアップ
 
-1. このリポジトリを AWX の Project として登録します。
-2. `instance-20251213-ARM_fw` 上で AWX を動かします。
+1. まずローカル Ansible から `deploy-awx.yml` を実行して、`instance-20251213-ARM_fw` に AWX を作成します。
+2. AWX 作成後、このリポジトリを AWX の Project として登録します。
 3. Oracle Linux の `opc` 用 SSH 鍵で Machine Credential を作成します。
 4. AWX から各ホストへ到達できることを確認します。
 5. Inventory を作成し、`inventory/hosts.yml` を取り込むか、同じホストを AWX 側で定義します。
@@ -46,6 +48,12 @@ AWX 向け Ansible 構成です。
 sub2api_deploy_dir: /home/opc/sub2api-deploy
 sub2api_env_overrides:
   TZ: Asia/Tokyo
+```
+
+AWX 自体を Ansible で作成するコマンド例:
+
+```bash
+ansible-playbook -i inventory/hosts.yml deploy-awx.yml
 ```
 
 ### 補足
@@ -75,17 +83,19 @@ This repository contains an AWX-friendly Ansible layout for deploying
 
 ### Layout
 
+- `deploy-awx.yml`: playbook for deploying AWX itself onto Kubernetes
 - `deploy-sub2api.yml`: main playbook for the AWX Job Template
 - `inventory/hosts.yml`: example inventory
 - `roles/docker`: installs Docker Engine and the Compose plugin
+- `roles/awx_k8s`: installs `kubeadm`-based Kubernetes and AWX
 - `roles/sub2api`: prepares the deployment directory and starts `sub2api`
 - `docs/AWX_K8S_SETUP.md`: setup guide for running AWX on standard Kubernetes
 - `k8s/awx/`: sample AWX Operator and AWX custom resource manifests
 
 ### AWX setup
 
-1. Register this repository as an AWX Project.
-2. Run AWX on `instance-20251213-ARM_fw`.
+1. First, run `deploy-awx.yml` from local Ansible to create AWX on `instance-20251213-ARM_fw`.
+2. After AWX is up, register this repository as an AWX Project.
 3. Create a Machine Credential using the Oracle Linux `opc` SSH key.
 4. Confirm that AWX can reach each target host.
 5. Create an Inventory and either import `inventory/hosts.yml` or define the same hosts directly in AWX.
@@ -102,6 +112,12 @@ Set these in AWX Inventory vars, Group vars, Host vars, or Survey as needed.
 sub2api_deploy_dir: /home/opc/sub2api-deploy
 sub2api_env_overrides:
   TZ: Asia/Tokyo
+```
+
+Example command for deploying AWX itself with Ansible:
+
+```bash
+ansible-playbook -i inventory/hosts.yml deploy-awx.yml
 ```
 
 ### Notes
@@ -131,17 +147,19 @@ sub2api_env_overrides:
 
 ### 目录结构
 
+- `deploy-awx.yml`: 用于将 AWX 本体部署到 Kubernetes 的 playbook
 - `deploy-sub2api.yml`: AWX Job Template 使用的主 playbook
 - `inventory/hosts.yml`: 初始 inventory 示例
 - `roles/docker`: 安装 Docker Engine 和 Compose 插件
+- `roles/awx_k8s`: 安装基于 `kubeadm` 的 Kubernetes 与 AWX
 - `roles/sub2api`: 准备部署目录并启动 `sub2api`
 - `docs/AWX_K8S_SETUP.md`: 在标准 Kubernetes 上部署 AWX 的步骤说明
 - `k8s/awx/`: AWX Operator 与 AWX 自定义资源示例
 
 ### AWX 设置步骤
 
-1. 将此仓库注册为 AWX 的 Project。
-2. 在 `instance-20251213-ARM_fw` 上运行 AWX。
+1. 先从本地 Ansible 执行 `deploy-awx.yml`，在 `instance-20251213-ARM_fw` 上创建 AWX。
+2. AWX 启动后，将此仓库注册为 AWX 的 Project。
 3. 使用 Oracle Linux 的 `opc` SSH 密钥创建 Machine Credential。
 4. 确认 AWX 可以连接到每一台目标主机。
 5. 创建 Inventory，并导入 `inventory/hosts.yml`，或者在 AWX 中手动定义相同主机。
@@ -158,6 +176,12 @@ sub2api_env_overrides:
 sub2api_deploy_dir: /home/opc/sub2api-deploy
 sub2api_env_overrides:
   TZ: Asia/Tokyo
+```
+
+使用 Ansible 部署 AWX 本体的示例命令:
+
+```bash
+ansible-playbook -i inventory/hosts.yml deploy-awx.yml
 ```
 
 ### 说明

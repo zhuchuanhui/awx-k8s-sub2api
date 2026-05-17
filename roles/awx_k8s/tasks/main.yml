@@ -1,0 +1,259 @@
+---
+- name: Ensure dnf plugin package is present
+  ansible.builtin.dnf:
+    name: dnf-plugins-core
+    state: present
+
+- name: Ensure Docker CE repository is configured
+  ansible.builtin.get_url:
+    url: "{{ docker_repo_url }}"
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: "0644"
+
+- name: Install OS packages for Kubernetes bootstrap
+  ansible.builtin.dnf:
+    name:
+      - curl
+      - tar
+      - socat
+      - conntrack-tools
+      - iproute-tc
+      - containerd.io
+      - firewalld
+      - git
+    state: present
+
+- name: Set SELinux to permissive at runtime
+  ansible.builtin.command: setenforce 0
+  when: awx_set_selinux_permissive | bool
+  changed_when: true
+  failed_when: false
+
+- name: Persist SELinux permissive mode
+  ansible.builtin.replace:
+    path: /etc/selinux/config
+    regexp: '^SELINUX=enforcing'
+    replace: 'SELINUX=permissive'
+  when: awx_set_selinux_permissive | bool
+
+- name: Disable swap immediately
+  ansible.builtin.command: swapoff -a
+  changed_when: false
+
+- name: Disable swap in fstab
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^(.*\sswap\s+.*)$'
+    replace: '# \1'
+
+- name: Configure Kubernetes kernel modules
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k8s.conf
+    mode: "0644"
+    content: |
+      overlay
+      br_netfilter
+
+- name: Load overlay module
+  ansible.builtin.command: modprobe overlay
+  changed_when: false
+
+- name: Load br_netfilter module
+  ansible.builtin.command: modprobe br_netfilter
+  changed_when: false
+
+- name: Configure Kubernetes sysctl values
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/k8s.conf
+    mode: "0644"
+    content: |
+      net.bridge.bridge-nf-call-iptables  = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.ipv4.ip_forward                 = 1
+
+- name: Apply sysctl values
+  ansible.builtin.command: sysctl --system
+  changed_when: false
+
+- name: Ensure firewalld is running
+  ansible.builtin.systemd:
+    name: firewalld
+    enabled: true
+    state: started
+  when: awx_manage_firewalld | bool
+
+- name: Open firewall ports for Kubernetes and AWX
+  ansible.builtin.command: firewall-cmd --permanent --add-port={{ item }}
+  loop: "{{ awx_firewall_ports }}"
+  register: awx_firewall_add
+  changed_when: "'success' in awx_firewall_add.stdout"
+  when: awx_manage_firewalld | bool
+
+- name: Reload firewalld rules
+  ansible.builtin.command: firewall-cmd --reload
+  changed_when: false
+  when: awx_manage_firewalld | bool
+
+- name: Ensure containerd config directory exists
+  ansible.builtin.file:
+    path: /etc/containerd
+    state: directory
+    mode: "0755"
+
+- name: Generate default containerd config if missing
+  ansible.builtin.shell: containerd config default > /etc/containerd/config.toml
+  args:
+    creates: /etc/containerd/config.toml
+
+- name: Enable systemd cgroup driver for containerd
+  ansible.builtin.replace:
+    path: /etc/containerd/config.toml
+    regexp: 'SystemdCgroup = false'
+    replace: 'SystemdCgroup = true'
+  notify: Restart containerd
+
+- name: Ensure containerd is running
+  ansible.builtin.systemd:
+    name: containerd
+    enabled: true
+    state: started
+
+- name: Configure Kubernetes yum repository
+  ansible.builtin.template:
+    src: kubernetes.repo.j2
+    dest: /etc/yum.repos.d/kubernetes.repo
+    mode: "0644"
+
+- name: Install kubeadm, kubelet, and kubectl
+  ansible.builtin.dnf:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+    disable_excludes: kubernetes
+
+- name: Ensure kubelet is running
+  ansible.builtin.systemd:
+    name: kubelet
+    enabled: true
+    state: started
+
+- name: Check whether Kubernetes cluster is already initialized
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: awx_kube_admin_conf
+
+- name: Initialize Kubernetes control plane
+  ansible.builtin.command: kubeadm init --pod-network-cidr={{ awx_pod_network_cidr }}
+  when: not awx_kube_admin_conf.stat.exists
+
+- name: Ensure remote workspace exists
+  ansible.builtin.file:
+    path: "{{ awx_k8s_work_dir }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+
+- name: Ensure .kube directory exists for remote user
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.kube"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0700"
+
+- name: Copy admin kubeconfig for remote user
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/home/{{ ansible_user }}/.kube/config"
+    remote_src: true
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+
+- name: Remove control-plane taint for single-node deployment
+  ansible.builtin.command: kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: awx_taint_result
+  changed_when: "'untainted' in awx_taint_result.stdout"
+  failed_when: false
+
+- name: Check whether Calico is already installed
+  ansible.builtin.command: kubectl get daemonset calico-node -n kube-system
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: awx_calico_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Calico CNI
+  ansible.builtin.command: kubectl apply -f {{ awx_calico_manifest_url }}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  when: awx_calico_check.rc != 0
+
+- name: Copy AWX Kubernetes manifests to remote host
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/k8s/awx/"
+    dest: "{{ awx_k8s_work_dir }}/{{ awx_k8s_subdir }}/"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
+
+- name: Apply AWX operator and CRDs first
+  ansible.builtin.command: kubectl apply -k .
+  args:
+    chdir: "{{ awx_k8s_work_dir }}/{{ awx_k8s_subdir }}"
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: awx_apply_result
+  changed_when: >
+    ' created' in awx_apply_result.stdout or
+    ' configured' in awx_apply_result.stdout or
+    'unchanged' not in awx_apply_result.stdout
+
+- name: Wait for AWX operator deployment to exist
+  ansible.builtin.command: kubectl get deployment awx-operator-controller-manager -n awx
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false
+  retries: 10
+  delay: 10
+  register: awx_deployment_check
+  until: awx_deployment_check.rc == 0
+
+- name: Wait for AWX operator pods to be ready
+  ansible.builtin.command: kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=awx-operator-controller-manager -n awx --timeout=600s
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  changed_when: false
+  failed_when: false
+  retries: 3
+  delay: 30
+
+- name: Wait for AWX admin password secret
+  ansible.builtin.command: kubectl -n awx get secret awx-admin-password
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: awx_secret_check
+  retries: 30
+  delay: 20
+  until: awx_secret_check.rc == 0
+  changed_when: false
+
+- name: Read AWX admin password
+  ansible.builtin.command: kubectl -n awx get secret awx-admin-password -o jsonpath={.data.password}
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: awx_admin_password_b64
+  changed_when: false
+
+- name: Print AWX access information
+  ansible.builtin.debug:
+    msg:
+      - "AWX URL: http://{{ ansible_host }}:{{ awx_nodeport_port }}/"
+      - "AWX admin user: {{ awx_admin_user }}"
+      - "AWX admin password: {{ awx_admin_password_b64.stdout | b64decode }}"

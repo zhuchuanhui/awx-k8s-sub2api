@@ -1,0 +1,15 @@
+---
+- name: Deploy AWX on Kubernetes
+  hosts: awx_controller
+  gather_facts: true
+  become: true
+
+  pre_tasks:
+    - name: Validate supported OS family
+      ansible.builtin.assert:
+        that:
+          - ansible_os_family == "RedHat"
+        fail_msg: "This playbook currently supports Oracle Linux / RedHat family hosts."
+
+  roles:
+    - role: awx_k8s
