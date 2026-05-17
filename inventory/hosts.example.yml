@@ -1,0 +1,25 @@
+all:
+  vars:
+    ansible_user: opc
+    ansible_become: true
+    sub2api_deploy_dir: /home/opc/sub2api-deploy
+    sub2api_compose_project_name: sub2api-deploy
+  children:
+    awx_controller:
+      hosts:
+        awx-controller.example.com:
+          ansible_host: <AWX_CONTROLLER_IP>
+    sub2api_targets:
+      hosts:
+        amd-instance-internal1.example.com:
+          ansible_host: <SUB2API_TARGET_1_IP>
+          ansible_ssh_common_args: -o ProxyJump=opc@<AWX_CONTROLLER_IP>
+        amd-instance-internal2.example.com:
+          ansible_host: <SUB2API_TARGET_2_IP>
+          ansible_ssh_common_args: -o ProxyJump=opc@<AWX_CONTROLLER_IP>
+        arm-instance.example.com:
+          ansible_host: <SUB2API_TARGET_ARM_IP>
+        amd-instance-1.example.com:
+          ansible_host: <SUB2API_TARGET_3_IP>
+        amd-instance-2.example.com:
+          ansible_host: <SUB2API_TARGET_4_IP>

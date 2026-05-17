@@ -27,6 +27,7 @@
 - AWX は `AWX Operator` で管理する
 - AWX の画面公開は最初は `NodePort` で始める
 - 配布 playbook はこのリポジトリの `deploy-sub2api.yml` を使う
+- `deploy-awx.yml` は AWX コントローラーサーバー自体を Kubernetes 上に構築するための playbook です
 
 ## ディレクトリ
 

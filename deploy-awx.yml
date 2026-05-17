@@ -1,5 +1,8 @@
 ---
-- name: Deploy AWX on Kubernetes
+# Build the AWX controller server on Kubernetes.
+# This playbook is intended to provision the AWX controller server itself
+# using Kubernetes on the AWX controller host.
+- name: Build AWX controller server on Kubernetes
   hosts: awx_controller
   gather_facts: true
   become: true
