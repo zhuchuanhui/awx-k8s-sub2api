@@ -441,7 +441,7 @@
         validate_certs: false
         body_format: json
         body:
-          id: "{{ _host_id }}"
+          id: "{{ _host_id | int }}"
         status_code: [200, 201, 204]
       loop: "{{ awx_inventory_groups | subelements('hosts') }}"
 
@@ -489,33 +489,33 @@
         status_code: [200, 201, 204]
       loop: "{{ _jt_result.results }}"
       when: item.status in [200, 201]
-- name: Survey 作成 (target_hosts) for each Job Template
-  ansible.builtin.uri:
-    url: "{{ awx_api }}/job_templates/{{ _jt_id }}/survey_spec/"
-    method: POST
-    user: "{{ awx_username }}"
-    password: "{{ awx_password }}"
-    force_basic_auth: true
-    validate_certs: false
-    body_format: json
-    body:
-      name: target_hosts
-      description: "対象ホストまたはグループを選択"
-      type: multiplechoice
-      required: true
-      choices:
-        - awx_controller_host
-        - amd_instance_internal1
-        - amd_instance_internal2
-        - arm_instance
-        - amd_instance_1
-        - amd_instance_2
-        - instance-20251213-ARM_fw
-      default:
-        - awx_controller_host
-  register: _survey_result
-  loop: "{{ _jt_result.results }}"
-  when: item.status in [200, 201]
+    - name: Survey 作成 (target_hosts) for each Job Template
+      ansible.builtin.uri:
+        url: "{{ awx_api }}/job_templates/{{ _jt_id }}/survey_spec/"
+        method: POST
+        user: "{{ awx_username }}"
+        password: "{{ awx_password }}"
+        force_basic_auth: true
+        validate_certs: false
+        body_format: json
+        body:
+          name: target_hosts
+          description: "対象ホストまたはグループを選択"
+          type: multiplechoice
+          required: true
+          choices:
+            - awx_controller_host
+            - amd_instance_internal1
+            - amd_instance_internal2
+            - arm_instance
+            - amd_instance_1
+            - amd_instance_2
+            - instance-20251213-ARM_fw
+          default:
+            - awx_controller_host
+      register: _survey_result
+      loop: "{{ _jt_result.results }}"
+      when: item.status in [200, 201]
     # ─────────────────────────────────────────
     # 完了サマリ
     # ─────────────────────────────────────────
