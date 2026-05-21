@@ -123,8 +123,8 @@ python3 setup-awx-resources.py ~/.ssh/id_rsa '<上記パスワード>'
 3. Oracle Linux の `opc` 用 SSH 鍵で Machine Credential を作成する
 4. AWX から各ホストへ到達できることを確認する
 5. Inventory を作成し、`inventory/hosts.yml` と同じグループ・ホストを定義する
-6. Job Template `build-awx-controller` / `deploy-sub2api` を作成する
-7. `deploy-sub2api` に Machine Credential と privilege escalation（sudo）を設定する
+6. Job Template `build-awx-controller` / `deploy-sub2api` / `deploy-k8s` を作成する
+7. 各 Job Template に Machine Credential と privilege escalation（sudo）を設定し、`deploy-k8s` では Variables の `Prompt on Launch` を有効にする
 
 ### AWX Web UI からの手動実行手順
 
@@ -150,10 +150,11 @@ python3 setup-awx-resources.py ~/.ssh/id_rsa '<上記パスワード>'
 4. Inventory を作成し、`inventory/hosts.yml` を取り込むか、AWX 上で同じホストとグループを定義します。
    - `awx_controller` グループには `instance-20251213-ARM_fw` を登録
    - `sub2api_targets` グループには対象ホストを登録
-5. Job Template を 2 つ作成します。
+5. Job Template を 3 つ作成します。
    - `build-awx-controller`: Project = `awx-sub2api`, Playbook = `deploy-awx.yml`, Inventory = `awx_controller`, Credential = Machine, Privilege Escalation 有効
    - `deploy-sub2api`: Project = `awx-sub2api`, Playbook = `deploy-sub2api.yml`, Inventory = `sub2api_targets`, Credential = Machine, Privilege Escalation 有効
-6. まず `build-awx-controller` を実行し、AWX コントローラーを構築します。その後 `deploy-sub2api` を実行します。
+   - `deploy-k8s`: Project = `awx-sub2api`, Playbook = `deploy-k8s.yml`, Inventory = 対象インベントリ, Credential = Machine, Privilege Escalation 有効, Variables の `Prompt on Launch` 有効
+6. まず `build-awx-controller` を実行し、AWX コントローラーを構築します。その後、必要に応じて `deploy-sub2api` または `deploy-k8s` を実行します。
 
 #### 役割の対応
 
@@ -381,8 +382,8 @@ If you do not use `setup-awx-resources.py`, configure AWX in the Web UI after `d
 3. Create Machine Credential with the `opc` SSH key
 4. Verify connectivity to all targets
 5. Create Inventory matching `inventory/hosts.yml`
-6. Create Job Templates `build-awx-controller` and `deploy-sub2api`
-7. Enable sudo on `deploy-sub2api`
+6. Create Job Templates `build-awx-controller`, `deploy-sub2api`, and `deploy-k8s`
+7. Enable sudo on templates, and enable `Prompt on Launch` for Variables on `deploy-k8s`
 
 ### Manual setup from AWX Web UI
 
@@ -404,10 +405,11 @@ If you do not use `setup-awx-resources.py`, configure AWX in the Web UI after `d
 4. Create Inventory and define the same hosts/groups as `inventory/hosts.yml`.
    - `awx_controller` group for `instance-20251213-ARM_fw`
    - `sub2api_targets` group for the target hosts
-5. Create two Job Templates:
+5. Create three Job Templates:
    - `build-awx-controller`: playbook `deploy-awx.yml`, inventory `awx_controller`, credential `Machine`, enable privilege escalation
    - `deploy-sub2api`: playbook `deploy-sub2api.yml`, inventory `sub2api_targets`, credential `Machine`, enable privilege escalation
-6. Run `build-awx-controller` first, then `deploy-sub2api`.
+   - `deploy-k8s`: playbook `deploy-k8s.yml`, inventory target inventory, credential `Machine`, enable privilege escalation, enable `Prompt on Launch` for Variables
+6. Run `build-awx-controller` first, then run `deploy-sub2api` or `deploy-k8s` as needed.
 
 #### Role mapping
 
@@ -607,7 +609,7 @@ python3 setup-awx-resources.py ~/.ssh/id_rsa '<AWX管理员密码>'
 
 ### 手动 AWX 配置（不使用自动脚本）
 
-使用 `deploy-awx.yml -e awx_setup_resources=false` 构建 AWX 后，在 Web UI 中手动完成：Project、Machine Credential、Inventory、Job Template 等（步骤同日文「手動セットアップ」）。
+使用 `deploy-awx.yml -e awx_setup_resources=false` 构建 AWX 后，在 Web UI 中手动完成：Project、Machine Credential、Inventory、Job Template（`build-awx-controller` / `deploy-sub2api` / `deploy-k8s`，并在 `deploy-k8s` 的 Variables 中启用 `Prompt on Launch`）等（步骤同日文「手動セットアップ」）。
 
 ### 从 AWX Web UI 手动执行
 
@@ -629,10 +631,11 @@ python3 setup-awx-resources.py ~/.ssh/id_rsa '<AWX管理员密码>'
 4. 创建 Inventory，并定义与 `inventory/hosts.yml` 相同的主机与组。
    - `awx_controller` 组包含 `instance-20251213-ARM_fw`
    - `sub2api_targets` 组包含目标主机
-5. 创建两个 Job Template：
+5. 创建三个 Job Template：
    - `build-awx-controller`: playbook `deploy-awx.yml`，inventory `awx_controller`，credential `Machine`，启用 privilege escalation
    - `deploy-sub2api`: playbook `deploy-sub2api.yml`，inventory `sub2api_targets`，credential `Machine`，启用 privilege escalation
-6. 先运行 `build-awx-controller`，然后运行 `deploy-sub2api`。
+   - `deploy-k8s`: playbook `deploy-k8s.yml`，目标清单，credential `Machine`，启用 privilege escalation，在 Variables 中启用 `Prompt on Launch`
+6. 先运行 `build-awx-controller`，然后根据需要运行 `deploy-sub2api` 或 `deploy-k8s`。
 
 #### 角色对应
 
