@@ -3,6 +3,8 @@
   ansible.builtin.dnf:
     name: dnf-plugins-core
     state: present
+  vars:
+    ansible_python_interpreter: "{{ _system_python | default('/usr/bin/python3') }}"
 
 - name: Ensure Docker CE repository is configured
   ansible.builtin.get_url:
@@ -22,6 +24,8 @@
       - firewalld
       - git
     state: present
+  vars:
+    ansible_python_interpreter: "{{ _system_python | default('/usr/bin/python3') }}"
 
 - name: Set SELinux to permissive at runtime
   ansible.builtin.command: setenforce 0
@@ -132,6 +136,8 @@
       - kubectl
     state: present
     disable_excludes: kubernetes
+  vars:
+    ansible_python_interpreter: "{{ _system_python | default('/usr/bin/python3') }}"
 
 - name: Ensure kubelet is running
   ansible.builtin.systemd:
@@ -195,65 +201,69 @@
     KUBECONFIG: /etc/kubernetes/admin.conf
   when: awx_calico_check.rc != 0
 
-- name: Copy AWX Kubernetes manifests to remote host
-  ansible.builtin.copy:
-    src: "{{ playbook_dir }}/k8s/awx/"
-    dest: "{{ awx_k8s_work_dir }}/{{ awx_k8s_subdir }}/"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
-    mode: "0644"
+- name: Install and configure AWX on Kubernetes
+  block:
+    - name: Copy AWX Kubernetes manifests to remote host
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/k8s/awx/"
+        dest: "{{ awx_k8s_work_dir }}/{{ awx_k8s_subdir }}/"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
 
-- name: Apply AWX operator and CRDs first
-  ansible.builtin.command: kubectl apply -k .
-  args:
-    chdir: "{{ awx_k8s_work_dir }}/{{ awx_k8s_subdir }}"
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
-  register: awx_apply_result
-  changed_when: >
-    ' created' in awx_apply_result.stdout or
-    ' configured' in awx_apply_result.stdout or
-    'unchanged' not in awx_apply_result.stdout
+    - name: Apply AWX operator and CRDs first
+      ansible.builtin.command: kubectl apply -k .
+      args:
+        chdir: "{{ awx_k8s_work_dir }}/{{ awx_k8s_subdir }}"
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: awx_apply_result
+      changed_when: >
+        ' created' in awx_apply_result.stdout or
+        ' configured' in awx_apply_result.stdout or
+        'unchanged' not in awx_apply_result.stdout
 
-- name: Wait for AWX operator deployment to exist
-  ansible.builtin.command: kubectl get deployment awx-operator-controller-manager -n awx
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
-  changed_when: false
-  retries: 10
-  delay: 10
-  register: awx_deployment_check
-  until: awx_deployment_check.rc == 0
+    - name: Wait for AWX operator deployment to exist
+      ansible.builtin.command: kubectl get deployment awx-operator-controller-manager -n awx
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      changed_when: false
+      retries: 10
+      delay: 10
+      register: awx_deployment_check
+      until: awx_deployment_check.rc == 0
 
-- name: Wait for AWX operator pods to be ready
-  ansible.builtin.command: kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=awx-operator-controller-manager -n awx --timeout=600s
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
-  changed_when: false
-  failed_when: false
-  retries: 3
-  delay: 30
+    - name: Wait for AWX operator pods to be ready
+      ansible.builtin.command: kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=awx-operator-controller-manager -n awx --timeout=600s
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      changed_when: false
+      failed_when: false
+      retries: 3
+      delay: 30
 
-- name: Wait for AWX admin password secret
-  ansible.builtin.command: kubectl -n awx get secret awx-admin-password
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
-  register: awx_secret_check
-  retries: 30
-  delay: 20
-  until: awx_secret_check.rc == 0
-  changed_when: false
+    - name: Wait for AWX admin password secret
+      ansible.builtin.command: kubectl -n awx get secret awx-admin-password
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: awx_secret_check
+      retries: 30
+      delay: 20
+      until: awx_secret_check.rc == 0
+      changed_when: false
 
-- name: Read AWX admin password
-  ansible.builtin.command: kubectl -n awx get secret awx-admin-password -o jsonpath={.data.password}
-  environment:
-    KUBECONFIG: /etc/kubernetes/admin.conf
-  register: awx_admin_password_b64
-  changed_when: false
+    - name: Read AWX admin password
+      ansible.builtin.command: kubectl -n awx get secret awx-admin-password -o jsonpath={.data.password}
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: awx_admin_password_b64
+      changed_when: false
 
-- name: Print AWX access information
-  ansible.builtin.debug:
-    msg:
-      - "AWX URL: http://{{ ansible_host }}:{{ awx_nodeport_port }}/"
-      - "AWX admin user: {{ awx_admin_user }}"
-      - "AWX admin password: {{ awx_admin_password_b64.stdout | b64decode }}"
+    - name: Print AWX access information
+      ansible.builtin.debug:
+        msg:
+          - "AWX URL: http://{{ ansible_host }}:{{ awx_nodeport_port }}/"
+          - "AWX admin user: {{ awx_admin_user }}"
+          - "AWX admin password: {{ awx_admin_password_b64.stdout | b64decode }}"
+  when: awx_k8s_install_awx | default(true) | bool
+

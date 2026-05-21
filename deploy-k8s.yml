@@ -1,0 +1,50 @@
+---
+- name: Deploy Kubernetes ONLY to selected hosts
+  hosts: "{{ target_hosts | default('sub2api_targets') }}"
+  gather_facts: false
+  become: true
+  vars:
+    ansible_host_key_checking: false
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+    awx_k8s_install_awx: false  # k8sのみの構築にするためAWXインストールは無効化
+
+  pre_tasks:
+    - name: Detect system python interpreter
+      ansible.builtin.raw: which python3
+      register: _system_python_check
+      failed_when: false
+      changed_when: false
+
+    - name: Set system python fact
+      ansible.builtin.set_fact:
+        _system_python: "{{ _system_python_check.stdout | trim | default('/usr/bin/python3') }}"
+
+    - name: Check if python3.11 is installed
+      ansible.builtin.raw: which python3.11
+      register: _python311_check
+      failed_when: false
+      changed_when: false
+
+    - name: Clean dnf cache to save memory
+      ansible.builtin.raw: dnf clean all
+      when: _python311_check.rc != 0
+
+    - name: Install python3.11 if missing
+      ansible.builtin.raw: dnf install -y python3.11 --setopt=tsflags=nodocs
+      when: _python311_check.rc != 0
+
+    - name: Set python3.11 as interpreter
+      ansible.builtin.set_fact:
+        ansible_python_interpreter: /usr/bin/python3.11
+
+    - name: Gather facts manually with python3.11
+      ansible.builtin.setup:
+
+    - name: Validate supported OS family
+      ansible.builtin.assert:
+        that:
+          - ansible_os_family == "RedHat"
+        fail_msg: "This playbook currently supports Oracle Linux / RedHat family hosts."
+
+  roles:
+    - role: awx_k8s

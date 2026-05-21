@@ -20,6 +20,7 @@ AWX 向け Ansible 構成です。
 ### 構成
 
 - `deploy-awx.yml`: AWX コントローラーサーバー自体を Kubernetes 上に構築する playbook（構築後にリソース自動セットアップあり）
+- `deploy-k8s.yml`: Kubernetes のみを構築する playbook（ホストの動的選択に対応）
 - `deploy-sub2api.yml`: AWX Job Template で実行するメイン playbook。古い Python 環境のターゲットに対し、自動で Python 3.11 を検知・インストールする処理を含みます。
 - `setup-awx-resources.py`: AWX 構築後に Project / Credential / Inventory / Job Template を一括作成するスクリプト（`deploy-awx.yml` から自動実行）
 - `setup-awx-resources.yml`: 上記と同等のリソースを Ansible 経由で作成する playbook（代替手段）
@@ -157,7 +158,38 @@ python3 setup-awx-resources.py ~/.ssh/id_rsa '<上記パスワード>'
 #### 役割の対応
 
 - `deploy-awx.yml` / `roles/awx_k8s`: AWX コントローラーサーバー構築
+- `deploy-k8s.yml` / `roles/awx_k8s`: Kubernetes のみの配布（AWXインストールをスキップし、ホスト選択に対応）
 - `deploy-sub2api.yml` / `roles/docker`, `roles/sub2api`: `sub2api` 配布
+
+### 実行時に配布先ホストを選択する（ローカルコントローラー含む）
+
+新しく追加された `deploy-k8s.yml` は、実行時に `target_hosts` 変数を指定することで、構築対象のホストやグループを動的に切り替えることができます。ローカルの AWX コントローラーサーバー（`awx_controller` グループ）に構築したい場合も同様です。
+
+#### AWX UI での設定手順
+1. AWX で `deploy-k8s` ジョブテンプレートを作成します。
+   * Playbook: `deploy-k8s.yml`
+   * Inventory: 対象ホストが含まれるインベントリ
+2. **起動時プロンプト（Prompt on Launch）** または **Survey（サーベイ）** を設定します。
+   * **オプション A（変数のプロンプト化）**: ジョブテンプレートの編集画面で「Variables（変数）」の「Prompt on Launch（起動時にプロンプト）」チェックボックスを有効にします。ジョブ起動時に `target_hosts: awx_controller` や `target_hosts: amd-instance-1` のように定義して実行します。
+   * **オプション B（Surveyの作成）**: ジョブテンプレートの「Survey」タブを開き、以下の質問を追加します。
+     * 質問のテキスト: `配布先ホスト・グループ名`
+     * 記述名 (Answer Variable Name): `target_hosts`
+     * タイプ: `Text`
+     * デフォルト値: `sub2api_targets`
+3. ジョブを起動し、Survey または変数で指定した対象ホストのみに Kubernetes がデプロイされることを確認します。
+
+#### コマンドラインでの実行例
+ローカルから直接実行する場合：
+```bash
+# sub2api_targets の全ホストに配布（デフォルト）
+ansible-playbook -i inventory/hosts.yml deploy-k8s.yml
+
+# ローカルの AWX コントローラーサーバーのみに配布
+ansible-playbook -i inventory/hosts.yml deploy-k8s.yml -e "target_hosts=awx_controller"
+
+# 特定のホストのみに配布
+ansible-playbook -i inventory/hosts.yml deploy-k8s.yml -e "target_hosts=amd-instance-1"
+```
 
 ### 便利な変数
 
@@ -259,6 +291,7 @@ This repository contains an AWX-friendly Ansible layout for deploying
 ### Layout
 
 - `deploy-awx.yml`: builds the AWX controller on Kubernetes and optionally runs automated resource setup
+- `deploy-k8s.yml`: builds Kubernetes only (supports dynamic target host selection)
 - `deploy-sub2api.yml`: main playbook for the AWX Job Template. Automatically detects and installs Python 3.11 on hosts with older Python versions.
 - `setup-awx-resources.py`: creates Project / Credential / Inventory / Job Templates via AWX API (invoked from `deploy-awx.yml`)
 - `setup-awx-resources.yml`: Ansible-based alternative for the same resources
@@ -379,7 +412,38 @@ If you do not use `setup-awx-resources.py`, configure AWX in the Web UI after `d
 #### Role mapping
 
 - `deploy-awx.yml` / `roles/awx_k8s`: build AWX controller server
+- `deploy-k8s.yml` / `roles/awx_k8s`: deploy Kubernetes only (skips AWX install, supports host selection)
 - `deploy-sub2api.yml` / `roles/docker`, `roles/sub2api`: deploy `sub2api`
+
+### Selecting Target Hosts at Runtime (Including Local Controller)
+
+The newly added `deploy-k8s.yml` allows you to dynamically switch target hosts or groups by defining the `target_hosts` variable at runtime. This also applies when deploying to the local AWX controller host (`awx_controller` group).
+
+#### Configuration Steps in AWX UI
+1. Create a `deploy-k8s` Job Template in AWX:
+   * Playbook: `deploy-k8s.yml`
+   * Inventory: The inventory containing your target hosts
+2. Set up **Prompt on Launch** or a **Survey**:
+   * **Option A (Variables Prompt)**: Check the "Prompt on Launch" checkbox under "Variables" on the job template edit screen. Pass `target_hosts: awx_controller` or `target_hosts: amd-instance-1` when launching.
+   * **Option B (Survey)**: Go to the "Survey" tab on the job template and add a question:
+     * Question Text: `Target Host or Group Name`
+     * Answer Variable Name: `target_hosts`
+     * Answer Type: `Text`
+     * Default Answer: `sub2api_targets`
+3. Launch the job and ensure Kubernetes is deployed only to the hosts specified in the survey or variables.
+
+#### CLI Execution Examples
+To run directly from your terminal:
+```bash
+# Deploy to all sub2api_targets (default)
+ansible-playbook -i inventory/hosts.yml deploy-k8s.yml
+
+# Deploy only to the local AWX controller server
+ansible-playbook -i inventory/hosts.yml deploy-k8s.yml -e "target_hosts=awx_controller"
+
+# Deploy to a specific host
+ansible-playbook -i inventory/hosts.yml deploy-k8s.yml -e "target_hosts=amd-instance-1"
+```
 
 ### Useful variables
 
@@ -460,6 +524,7 @@ This produces a tarball containing the playbooks, role code, docs, sample invent
 ### 目录结构
 
 - `deploy-awx.yml`: 在 Kubernetes 上构建 AWX，并可自动完成资源配置
+- `deploy-k8s.yml`: 仅构建 Kubernetes（支持动态选择目标主机）
 - `deploy-sub2api.yml`: AWX Job Template 使用的主 playbook。包含针对旧版 Python 目标主机的自动检测和 Python 3.11 安装逻辑。
 - `setup-awx-resources.py`: 通过 AWX API 一键创建资源（由 `deploy-awx.yml` 调用）
 - `setup-awx-resources.yml`: 用 Ansible 创建相同资源的替代 playbook
@@ -572,7 +637,38 @@ python3 setup-awx-resources.py ~/.ssh/id_rsa '<AWX管理员密码>'
 #### 角色对应
 
 - `deploy-awx.yml` / `roles/awx_k8s`: 构建 AWX 控制器服务器
+- `deploy-k8s.yml` / `roles/awx_k8s`: 仅部署 Kubernetes（跳过 AWX 安装，支持选择主机）
 - `deploy-sub2api.yml` / `roles/docker`, `roles/sub2api`: 部署 `sub2api`
+
+### 运行时选择部署目标主机（包括本地控制器）
+
+新增加的 `deploy-k8s.yml` 允许在运行时通过定义 `target_hosts` 变量来动态切换目标主机或主机组。如果您想部署到本地 AWX 控制器服务器（`awx_controller` 组），此配置同样适用。
+
+#### AWX UI 配置步骤
+1. 在 AWX 中创建 `deploy-k8s` 作业模板（Job Template）：
+   * Playbook: `deploy-k8s.yml`
+   * Inventory: 包含目标主机的清单（Inventory）
+2. 配置 **启动时提示（Prompt on Launch）** 或 **调查问卷（Survey）**：
+   * **选项 A（变量提示）**: 在作业模板编辑界面的“Variables（变量）”区域勾选“Prompt on Launch（启动时提示）”。启动时传递 `target_hosts: awx_controller` 或 `target_hosts: amd-instance-1`。
+   * **选项 B（Survey 问卷）**: 在作业模板的“Survey”标签页添加以下问题：
+     * 问题文本: `目标主机或主机组名称`
+     * 变量名称 (Answer Variable Name): `target_hosts`
+     * 答案类型: `Text`
+     * 默认答案: `sub2api_targets`
+3. 启动作业，并确保 Kubernetes 仅部署到 Survey 或变量中指定的主机上。
+
+#### 命令行执行示例
+从终端直接运行：
+```bash
+# 部署到所有 sub2api_targets（默认）
+ansible-playbook -i inventory/hosts.yml deploy-k8s.yml
+
+# 仅部署到本地 AWX 控制器服务器
+ansible-playbook -i inventory/hosts.yml deploy-k8s.yml -e "target_hosts=awx_controller"
+
+# 部署到指定主机
+ansible-playbook -i inventory/hosts.yml deploy-k8s.yml -e "target_hosts=amd-instance-1"
+```
 
 ### 常用变量
 
