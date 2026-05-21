@@ -20,13 +20,13 @@ AWX 向け Ansible 構成です。
 ### 構成
 
 - `deploy-awx.yml`: AWX コントローラーサーバー自体を Kubernetes 上に構築する playbook（構築後にリソース自動セットアップあり）
-- `deploy-sub2api.yml`: AWX Job Template で実行するメイン playbook
+- `deploy-sub2api.yml`: AWX Job Template で実行するメイン playbook。古い Python 環境のターゲットに対し、自動で Python 3.11 を検知・インストールする処理を含みます。
 - `setup-awx-resources.py`: AWX 構築後に Project / Credential / Inventory / Job Template を一括作成するスクリプト（`deploy-awx.yml` から自動実行）
 - `setup-awx-resources.yml`: 上記と同等のリソースを Ansible 経由で作成する playbook（代替手段）
 - `setup-awx-resources.sh`: `setup-awx-resources.yml` を実行するラッパースクリプト
 - `inventory/hosts.yml`: 運用 inventory（ローカル専用・`.gitignore` 対象）
 - `inventory/hosts.example.yml`: 配布用サンプル inventory
-- `roles/docker`: Docker Engine と Compose plugin を導入
+- `roles/docker`: Docker Engine と Compose plugin を導入。Python 3.11 移行時のインポート失敗を避けるため、DNFモジュールはシステム標準 Python で動くように最適化されています。
 - `roles/awx_k8s`: `kubeadm` ベースの Kubernetes と AWX を導入
 - `roles/sub2api`: 配置ディレクトリを準備して `sub2api` を起動
 - `docs/AWX_K8S_SETUP.md`: 標準 Kubernetes 上で AWX を作る手順
@@ -184,6 +184,8 @@ sub2api_env_overrides:
 | プレイ 1 は成功、プレイ 2 のみ失敗 | AWX は起動済み | 上記「リソースセットアップだけやり直す」を参照 |
 | AWX UI に Job Template が無い | プレイ 2 未実行または失敗 | `awx_setup_resources=false` を付けていないか確認し、プレイ 2 を再実行 |
 | AWX Job で `Are you sure you want to continue connecting (yes/no)?` | AWX ランナーは `ansible.cfg` の `host_key_checking` を無視することがある | Project を SCM 同期後、Inventory 変数に `ansible_host_key_checking: false` を設定する（下記） |
+| `Could not import the dnf python module using /usr/bin/python3.11` | DNFモジュールはシステム標準Pythonに依存するため、Python 3.11上で動かない | プレイブック側で dnf タスクのみ自動でシステム標準Pythonに戻して実行するように修正されました。 |
+| DNF インストール中に `Killed` で失敗する（メモリ不足） | 1GB等の少メモリホストでDNFがキャッシュパース時にメモリ枯渇した | プレイブック側で dnf 実行前に `dnf clean all` を行い、不要ドキュメントを省く `--setopt=tsflags=nodocs` を追加してメモリ消費を抑えるよう修正されました。 |
 
 #### AWX Job で SSH ホスト鍵確認が止まる場合
 
@@ -257,13 +259,13 @@ This repository contains an AWX-friendly Ansible layout for deploying
 ### Layout
 
 - `deploy-awx.yml`: builds the AWX controller on Kubernetes and optionally runs automated resource setup
-- `deploy-sub2api.yml`: main playbook for the AWX Job Template
+- `deploy-sub2api.yml`: main playbook for the AWX Job Template. Automatically detects and installs Python 3.11 on hosts with older Python versions.
 - `setup-awx-resources.py`: creates Project / Credential / Inventory / Job Templates via AWX API (invoked from `deploy-awx.yml`)
 - `setup-awx-resources.yml`: Ansible-based alternative for the same resources
 - `setup-awx-resources.sh`: wrapper for `setup-awx-resources.yml`
 - `inventory/hosts.yml`: local inventory (gitignored)
 - `inventory/hosts.example.yml`: sanitized sample inventory for distribution
-- `roles/docker`: installs Docker Engine and the Compose plugin
+- `roles/docker`: installs Docker Engine and the Compose plugin. DNF tasks are optimized to run under the system default Python to avoid python3.11 import failures.
 - `roles/awx_k8s`: installs `kubeadm`-based Kubernetes and AWX
 - `roles/sub2api`: prepares the deployment directory and starts `sub2api`
 - `docs/AWX_K8S_SETUP.md`: setup guide for running AWX on standard Kubernetes
@@ -401,6 +403,8 @@ sub2api_env_overrides:
 | Play 1 OK, play 2 failed | AWX already up | Re-run from play 2 only (see above) |
 | No Job Templates in AWX UI | Play 2 skipped or failed | Ensure `awx_setup_resources` is not `false`; re-run play 2 |
 | AWX Job stuck on SSH `yes/no` host key prompt | AWX runner may ignore project `ansible.cfg` | Set `ansible_host_key_checking: false` on inventory `sub2api-inventory`, sync SCM, re-run job (see Japanese section) |
+| `Could not import the dnf python module using /usr/bin/python3.11` | DNF library depends on system default Python and cannot be imported in Python 3.11 | Fixed by temporarily switching python interpreter back to system default during DNF tasks. |
+| DNF install fails with `Killed` (out of memory) | DNF process killed due to RAM exhaustion on small hosts (e.g. 1GB RAM) during metadata parsing | Fixed by cleaning cache beforehand and adding `--setopt=tsflags=nodocs` to reduce memory footprints. |
 
 ### Notes
 
@@ -456,13 +460,13 @@ This produces a tarball containing the playbooks, role code, docs, sample invent
 ### 目录结构
 
 - `deploy-awx.yml`: 在 Kubernetes 上构建 AWX，并可自动完成资源配置
-- `deploy-sub2api.yml`: AWX Job Template 使用的主 playbook
+- `deploy-sub2api.yml`: AWX Job Template 使用的主 playbook。包含针对旧版 Python 目标主机的自动检测和 Python 3.11 安装逻辑。
 - `setup-awx-resources.py`: 通过 AWX API 一键创建资源（由 `deploy-awx.yml` 调用）
 - `setup-awx-resources.yml`: 用 Ansible 创建相同资源的替代 playbook
 - `setup-awx-resources.sh`: `setup-awx-resources.yml` 的包装脚本
 - `inventory/hosts.yml`: 本地 inventory（已 gitignore）
 - `inventory/hosts.example.yml`: 分发用示例 inventory
-- `roles/docker`: 安装 Docker Engine 和 Compose 插件
+- `roles/docker`: 安装 Docker Engine 和 Compose 插件。优化了 DNF 模块的运行机制，使其使用系统默认 Python 以避免 Python 3.11 导入失败。
 - `roles/awx_k8s`: 安装基于 `kubeadm` 的 Kubernetes 与 AWX
 - `roles/sub2api`: 准备部署目录并启动 `sub2api`
 - `docs/AWX_K8S_SETUP.md`: 在标准 Kubernetes 上部署 AWX 的步骤说明
@@ -592,6 +596,8 @@ sub2api_env_overrides:
 | Play 1 成功、Play 2 失败 | AWX 已运行 | 仅重跑 Play 2（见上文） |
 | AWX UI 无 Job Template | Play 2 未执行或失败 | 确认未设置 `awx_setup_resources=false`，重跑 Play 2 |
 | AWX Job 停在 SSH `yes/no` 提示 | AWX 运行器可能不读取项目 `ansible.cfg` | 在 Inventory 设置 `ansible_host_key_checking: false`，同步 SCM 后重跑（见日文说明） |
+| `Could not import the dnf python module using /usr/bin/python3.11` | DNF 依赖于系统默认 Python，而在 Python 3.11 下无法导入该库 | 现已在 DNF 任务中自动切换回系统默认 Python 进行处理。 |
+| DNF 安装由于 `Killed` 失败（内存不足） | 内存较小（如 1GB）的主机在解析 DNF 缓存时耗尽内存 | 现已在 DNF 执行前清理缓存，并添加了 `--setopt=tsflags=nodocs` 以最大程度降低内存占用。 |
 
 ### 说明
 
