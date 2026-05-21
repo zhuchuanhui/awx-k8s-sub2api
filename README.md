@@ -95,7 +95,9 @@ ansible-playbook -i inventory/hosts.yml deploy-awx.yml -e awx_setup_resources=fa
 
 #### 5. リソースセットアップだけやり直す場合
 
-AWX は起動済みで、Project / Credential / Inventory / Job Template の登録だけ再実行したいとき:
+AWX は起動済みで、Project / Credential / Inventory / Job Template の登録だけ再実行したいときや、新しく追加された `deploy-k8s` ジョブテンプレートを自動登録したいとき:
+
+最新化したスクリプトを実行すると、自動的に `deploy-k8s` テンプレートが作成されます。この際、**「変数（Variables）の起動時プロンプト（Prompt on Launch）」**設定も自動で有効（オン）になります。すでに存在する他のテンプレートやプロジェクト、インベントリは上書きされず「既存」としてそのままスキップされるため、安全に再実行できます。
 
 ```bash
 # 2 つ目のプレイから再開（AWX 構築をスキップ）
@@ -361,6 +363,10 @@ ANSIBLE_LOCAL_TEMP=/tmp/ansible-local \
 
 #### 5. Re-run resource setup only
 
+When AWX is already running and you want to re-run configuration only, or automatically register the newly added `deploy-k8s` job template:
+
+Running the updated script will automatically create the `deploy-k8s` template and enable the **"Prompt on Launch"** setting for variables. Any existing templates, projects, or inventories are skipped (not overwritten), making it safe to re-run.
+
 ```bash
 ANSIBLE_LOCAL_TEMP=/tmp/ansible-local \
   ansible-playbook -i inventory/hosts.yml deploy-awx.yml \
@@ -594,6 +600,10 @@ ANSIBLE_LOCAL_TEMP=/tmp/ansible-local \
 3. 启动 **`deploy-sub2api`** 部署到各 `sub2api_targets`
 
 #### 5. 仅重新执行资源配置
+
+当 AWX 已经运行，您只想重新执行配置，或者想自动注册新添加的 `deploy-k8s` 作业模板时：
+
+运行更新后的脚本将自动创建 `deploy-k8s` 模板，并为变量启用 **“启动时提示（Prompt on Launch）”** 设置。任何已存在的模板、项目或清单都将被跳过（不会被覆盖），因此可以安全地重新运行。
 
 ```bash
 ANSIBLE_LOCAL_TEMP=/tmp/ansible-local \
