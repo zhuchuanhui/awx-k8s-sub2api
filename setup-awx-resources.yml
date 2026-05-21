@@ -71,18 +71,52 @@
           - name: amd-instance-2
             vars:
               ansible_host: "141.147.149.131"
+      # 個別ホスト用グループ（Survey で選択可能）
+      - name: awx_controller_host
+        hosts:
+          - name: instance-20251213-ARM_fw
+            vars:
+              ansible_host: "140.83.58.183"
+      - name: amd_instance_internal1
+        hosts:
+          - name: amd-instance-internal1
+            vars:
+              ansible_host: "10.0.1.100"
+              ansible_ssh_common_args: "{{ awx_proxy_ssh_args }}"
+      - name: amd_instance_internal2
+        hosts:
+          - name: amd-instance-internal2
+            vars:
+              ansible_host: "10.0.2.100"
+              ansible_ssh_common_args: "{{ awx_proxy_ssh_args }}"
+      - name: arm_instance
+        hosts:
+          - name: arm-instance
+            vars:
+              ansible_host: "140.83.81.132"
+      - name: amd_instance_1
+        hosts:
+          - name: amd-instance-1
+            vars:
+              ansible_host: "152.70.84.253"
+      - name: amd_instance_2
+        hosts:
+          - name: amd-instance-2
+            vars:
+              ansible_host: "141.147.149.131"
+
 
     # Job Template 定義
     awx_job_templates:
       - name: build-awx-controller
         playbook: deploy-awx.yml
         inventory: "{{ awx_inventory_name }}"
-        limit: awx_controller
+        limit: "{{ target_hosts | default('awx_controller') }}"
         description: "AWX コントローラーサーバーを Kubernetes 上に構築する"
       - name: deploy-sub2api
         playbook: deploy-sub2api.yml
         inventory: "{{ awx_inventory_name }}"
-        limit: sub2api_targets
+        limit: "{{ target_hosts | default('sub2api_targets') }}"
         description: "sub2api を対象ホストに配布・起動する"
 
   tasks:
@@ -333,7 +367,7 @@
     # ─────────────────────────────────────────
     # 5. グループ・ホスト登録
     # ─────────────────────────────────────────
-    - name: グループ作成
+    - name: グループ作成 (既存はスキップ)
       ansible.builtin.uri:
         url: "{{ awx_api }}/groups/"
         method: POST
@@ -345,13 +379,10 @@
         body:
           name: "{{ item.name }}"
           inventory: "{{ _inv_id }}"
-        status_code: [200, 201]
+        status_code: [200, 201, 400]
       loop: "{{ awx_inventory_groups }}"
-      register: _groups_created
-      # 既存グループ (409) はスキップ
-      failed_when: >
-        _groups_created.status not in [200, 201] and
-        not (_groups_created.status == 400 and 'already exists' in (_groups_created.json.name | default(['']) | join('')))
+      register: _group_create_result
+      failed_when: false
 
     - name: グループ ID 取得
       ansible.builtin.uri:
@@ -380,13 +411,11 @@
           name: "{{ item.1.name }}"
           inventory: "{{ _inv_id }}"
           variables: "{{ _host_vars_yaml }}"
-        status_code: [200, 201]
+        status_code: [200, 201, 400]
       loop: "{{ awx_inventory_groups | subelements('hosts') }}"
       register: _hosts_result
       # 既存ホストは無視
-      failed_when: >
-        _hosts_result.status not in [200, 201] and
-        not (_hosts_result.status == 400 and 'already exists' in (_hosts_result.json.name | default(['']) | join('')))
+      failed_when: false
 
     - name: ホスト ID 取得
       ansible.builtin.uri:
@@ -460,7 +489,33 @@
         status_code: [200, 201, 204]
       loop: "{{ _jt_result.results }}"
       when: item.status in [200, 201]
-
+- name: Survey 作成 (target_hosts) for each Job Template
+  ansible.builtin.uri:
+    url: "{{ awx_api }}/job_templates/{{ _jt_id }}/survey_spec/"
+    method: POST
+    user: "{{ awx_username }}"
+    password: "{{ awx_password }}"
+    force_basic_auth: true
+    validate_certs: false
+    body_format: json
+    body:
+      name: target_hosts
+      description: "対象ホストまたはグループを選択"
+      type: multiplechoice
+      required: true
+      choices:
+        - awx_controller_host
+        - amd_instance_internal1
+        - amd_instance_internal2
+        - arm_instance
+        - amd_instance_1
+        - amd_instance_2
+        - instance-20251213-ARM_fw
+      default:
+        - awx_controller_host
+  register: _survey_result
+  loop: "{{ _jt_result.results }}"
+  when: item.status in [200, 201]
     # ─────────────────────────────────────────
     # 完了サマリ
     # ─────────────────────────────────────────

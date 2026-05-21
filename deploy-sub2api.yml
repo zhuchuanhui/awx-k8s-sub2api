@@ -1,8 +1,8 @@
 ---
-- name: Deploy sub2api to Oracle Linux hosts
-  hosts: sub2api_targets
-  gather_facts: false
-  become: true
+  - name: Deploy sub2api to Oracle Linux hosts
+    hosts: "{{ target_hosts | default('sub2api_targets') }}"
+    gather_facts: false
+    become: true
   vars:
     ansible_host_key_checking: false
     ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
