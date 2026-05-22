@@ -3,9 +3,11 @@
 # This playbook is intended to provision the AWX controller server itself
 # using Kubernetes on the AWX controller host.
 - name: Build AWX controller server on Kubernetes
-  hosts: "{{ target_hosts | default('awx_controller') }}"
+  hosts: "{{ limit | default(default_limit) }}"
   gather_facts: false
   become: true
+  vars:
+    default_limit: "awx_controller,sub2api_targets,awx_controller_host,amd_instance_internal1,amd_instance_internal2,arm_instance,amd_instance_1,amd_instance_2"
 
   pre_tasks:
     - name: Detect system python interpreter
@@ -53,9 +55,11 @@
 #   awx_ssh_private_key_file : SSH 秘密鍵ファイルパス（既定: group_vars/all.yml → ~/.ssh/id_rsa）
 #   awx_setup_resources      : false を渡すとこのプレイをスキップ（デフォルト: true）
 - name: AWX リソース自動セットアップ
-  hosts: awx_controller
+  hosts: "{{ limit | default('awx_controller') }}"
   gather_facts: false
   become: false
+  vars:
+    default_limit: "awx_controller,sub2api_targets,awx_controller_host,amd_instance_internal1,amd_instance_internal2,arm_instance,amd_instance_1,amd_instance_2"
 
   tasks:
     - name: AWX リソースセットアップをスキップするか確認

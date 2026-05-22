@@ -1,8 +1,10 @@
 # check-hosts.yml
 ---
 - name: ホスト正常性確認プレイブック
-  hosts: all
+  hosts: "{{ limit | default(default_limit) }}"
   become: false
+  vars:
+    default_limit: "awx_controller,sub2api_targets,awx_controller_host,amd_instance_internal1,amd_instance_internal2,arm_instance,amd_instance_1,amd_instance_2"
   gather_facts: false
 
   tasks:
