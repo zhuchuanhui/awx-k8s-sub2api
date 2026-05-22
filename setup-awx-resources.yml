@@ -440,8 +440,7 @@
         force_basic_auth: true
         validate_certs: false
         body_format: json
-        body:
-          id: "{{ _host_id | int }}"
+        body: "{{ {'id': (_host_id | int)} }}"
         status_code: [200, 201, 204]
       loop: "{{ awx_inventory_groups | subelements('hosts') }}"
 
@@ -466,12 +465,12 @@
           limit: "{{ item.limit }}"
           become_enabled: true
           description: "{{ item.description }}"
-        status_code: [200, 201]
+        status_code: [200, 201, 400]
       loop: "{{ awx_job_templates }}"
       register: _jt_result
       failed_when: >
         _jt_result.status not in [200, 201] and
-        not (_jt_result.status == 400 and 'already exists' in (_jt_result.json.name | default(['']) | join('')))
+        not (_jt_result.status == 400 and 'already exists' in (_jt_result.json.__all__ | default(['']) | join('')))
 
     - name: Job Template に Credential を紐付け
       vars:
@@ -489,33 +488,40 @@
         status_code: [200, 201, 204]
       loop: "{{ _jt_result.results }}"
       when: item.status in [200, 201]
+
     - name: Survey 作成 (target_hosts) for each Job Template
+      vars:
+        _jt_id: "{{ item.json.id }}"
       ansible.builtin.uri:
         url: "{{ awx_api }}/job_templates/{{ _jt_id }}/survey_spec/"
-        method: POST
+        method: PUT
         user: "{{ awx_username }}"
         password: "{{ awx_password }}"
         force_basic_auth: true
         validate_certs: false
         body_format: json
         body:
-          name: target_hosts
+          name: "target_hosts Survey"
           description: "対象ホストまたはグループを選択"
-          type: multiplechoice
-          required: true
-          choices:
-            - awx_controller_host
-            - amd_instance_internal1
-            - amd_instance_internal2
-            - arm_instance
-            - amd_instance_1
-            - amd_instance_2
-            - instance-20251213-ARM_fw
-          default:
-            - awx_controller_host
-      register: _survey_result
+          spec:
+            - question_name: "target_hosts"
+              question_description: "対象ホストまたはグループを選択"
+              type: "multiplechoice"
+              required: true
+              choices:
+                - awx_controller_host
+                - amd_instance_internal1
+                - amd_instance_internal2
+                - arm_instance
+                - amd_instance_1
+                - amd_instance_2
+                - instance-20251213-ARM_fw
+              default:
+                - awx_controller_host
+        status_code: [200, 201, 204]
       loop: "{{ _jt_result.results }}"
       when: item.status in [200, 201]
+
     # ─────────────────────────────────────────
     # 完了サマリ
     # ─────────────────────────────────────────
