@@ -210,8 +210,8 @@ kubectl get storageclass
 例:
 
 ```bash
-git clone https://github.com/zhuchuanhui/awx-sub2api.git awx-sub2api
-cd awx-sub2api
+git clone https://github.com/zhuchuanhui/awx-k8s-sub2api.git awx-k8s-sub2api
+cd awx-k8s-sub2api
 ```
 
 もし Git を使わずに置く場合でも、最低限以下が必要です。
@@ -290,7 +290,7 @@ AWX にログインしたら以下を作ります。
 ### Project
 
 - SCM Type: `Git`
-- SCM URL: `https://github.com/zhuchuanhui/awx-sub2api.git`
+- SCM URL: `https://github.com/zhuchuanhui/awx-k8s-sub2api.git`
 
 ### Inventory
 

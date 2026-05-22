@@ -24,9 +24,9 @@ import yaml
 AWX_HOST     = "http://140.83.58.183:30080"
 AWX_USERNAME = "admin"
 AWX_ORG      = "Default"
-SCM_URL      = "https://github.com/zhuchuanhui/awx-sub2api.git"
+SCM_URL      = "https://github.com/zhuchuanhui/awx-k8s-sub2api.git"
 SCM_BRANCH   = "main"
-PROJECT_NAME = "awx-sub2api"
+PROJECT_NAME = "awx-k8s-sub2api"
 CRED_NAME    = "opc-machine-credential"
 INV_NAME     = "sub2api-inventory"
 
@@ -257,7 +257,7 @@ def main():
         "scm_branch": SCM_BRANCH,
         "scm_update_on_launch": True,
         "scm_clean": True,
-        "description": "awx-sub2api リポジトリ",
+        "description": "awx-k8s-sub2api リポジトリ",
     })
     project_id = project["id"]
 

@@ -67,7 +67,7 @@ ansible-playbook -i inventory/hosts.yml deploy-awx.yml \
 #### 3. AWX 構築 + リソース自動セットアップを実行する
 
 ```bash
-cd awx-sub2api
+cd awx-k8s-sub2api
 ANSIBLE_LOCAL_TEMP=/tmp/ansible-local \
   ansible-playbook -i inventory/hosts.yml deploy-awx.yml
 ```
@@ -131,16 +131,16 @@ python3 setup-awx-resources.py ~/.ssh/id_rsa '<上記パスワード>'
 ### AWX Web UI からの手動実行手順
 
 1. AWX コントローラーサーバーにこのリポジトリを配置します。
-   - 例: `/home/opc/awx-sub2api` に `git clone` または `scp` で配置します。
+   - 例: `/home/opc/awx-k8s-sub2api` に `git clone` または `scp` で配置します。
    - 例:
      ```bash
      ssh opc@140.83.58.183
      cd /home/opc
-     rm -rf awx-sub2api
-     git clone https://github.com/zhuchuanhui/awx-sub2api.git
-     cd awx-sub2api
+     rm -rf awx-k8s-sub2api
+     git clone https://github.com/zhuchuanhui/awx-k8s-sub2api.git
+     cd awx-k8s-sub2api
      ```
-   - `awx-sub2api` が既に存在する場合は、`rm -rf awx-sub2api` で削除してから再クローンします。
+   - `awx-k8s-sub2api` が既に存在する場合は、`rm -rf awx-k8s-sub2api` で削除してから再クローンします。
    - AWX から参照できる Git リポジトリを作成するのが推奨です。
 2. AWX Web UI で Project を作成します。
    - SCM Type: `Git`
@@ -153,10 +153,10 @@ python3 setup-awx-resources.py ~/.ssh/id_rsa '<上記パスワード>'
    - `awx_controller` グループには `instance-20251213-ARM_fw` を登録
    - `sub2api_targets` グループには対象ホストを登録
 5. Job Template を 4 つ作成します。
-   - `build-awx-controller`: Project = `awx-sub2api`, Playbook = `deploy-awx.yml`, Inventory = `awx_controller`, Credential = Machine, Privilege Escalation 有効, Variables の `Prompt on Launch` 有効 (ホスト選択可能)
-   - `deploy-sub2api`: Project = `awx-sub2api`, Playbook = `deploy-sub2api.yml`, Inventory = `sub2api_targets`, Credential = Machine, Privilege Escalation 有効
-   - `deploy-k8s`: Project = `awx-sub2api`, Playbook = `deploy-k8s.yml`, Inventory = 対象インベントリ, Credential = Machine, Privilege Escalation 有効, Variables の `Prompt on Launch` 有効
-   - `run-any-playbook`: Project = `awx-sub2api`, Playbook = `{{ selected_playbook }}`, Inventory = 対象インベントリ, Credential = Machine, Privilege Escalation 有効, Variables の `Prompt on Launch` 有効 (Playbook とホストを実行時に選択)
+   - `build-awx-controller`: Project = `awx-k8s-sub2api`, Playbook = `deploy-awx.yml`, Inventory = `awx_controller`, Credential = Machine, Privilege Escalation 有効, Variables の `Prompt on Launch` 有効 (ホスト選択可能)
+   - `deploy-sub2api`: Project = `awx-k8s-sub2api`, Playbook = `deploy-sub2api.yml`, Inventory = `sub2api_targets`, Credential = Machine, Privilege Escalation 有効
+   - `deploy-k8s`: Project = `awx-k8s-sub2api`, Playbook = `deploy-k8s.yml`, Inventory = 対象インベントリ, Credential = Machine, Privilege Escalation 有効, Variables の `Prompt on Launch` 有効
+   - `run-any-playbook`: Project = `awx-k8s-sub2api`, Playbook = `{{ selected_playbook }}`, Inventory = 対象インベントリ, Credential = Machine, Privilege Escalation 有効, Variables の `Prompt on Launch` 有効 (Playbook とホストを実行時に選択)
 6. まず `build-awx-controller` を実行し、AWX コントローラーを構築します。その後、必要に応じて `deploy-sub2api` または `deploy-k8s` を実行します。
 
 #### 役割の対応
@@ -342,7 +342,7 @@ ansible-playbook -i inventory/hosts.yml deploy-awx.yml \
 #### 3. Build AWX and auto-configure resources
 
 ```bash
-cd awx-sub2api
+cd awx-k8s-sub2api
 ANSIBLE_LOCAL_TEMP=/tmp/ansible-local \
   ansible-playbook -i inventory/hosts.yml deploy-awx.yml
 ```
@@ -407,11 +407,11 @@ If you do not use `setup-awx-resources.py`, configure AWX in the Web UI after `d
      ```bash
      ssh opc@140.83.58.183
      cd /home/opc
-     rm -rf awx-sub2api
-     git clone https://github.com/zhuchuanhui/awx-sub2api.git
-     cd awx-sub2api
+     rm -rf awx-k8s-sub2api
+     git clone https://github.com/zhuchuanhui/awx-k8s-sub2api.git
+     cd awx-k8s-sub2api
      ```
-   - If `awx-sub2api` already exists, remove it first with `rm -rf awx-sub2api` before cloning again.
+   - If `awx-k8s-sub2api` already exists, remove it first with `rm -rf awx-k8s-sub2api` before cloning again.
 2. Create an AWX Project:
    - SCM Type: `Git`
    - SCM URL: your repository URL
@@ -588,7 +588,7 @@ ansible-playbook -i inventory/hosts.yml deploy-awx.yml \
 #### 3. 构建 AWX 并自动配置资源
 
 ```bash
-cd awx-sub2api
+cd awx-k8s-sub2api
 ANSIBLE_LOCAL_TEMP=/tmp/ansible-local \
   ansible-playbook -i inventory/hosts.yml deploy-awx.yml
 ```
@@ -645,11 +645,11 @@ ANSIBLE_LOCAL_TEMP=/tmp/ansible-local \
      ```bash
      ssh opc@140.83.58.183
      cd /home/opc
-     rm -rf awx-sub2api
-     git clone https://github.com/zhuchuanhui/awx-sub2api.git
-     cd awx-sub2api
+     rm -rf awx-k8s-sub2api
+     git clone https://github.com/zhuchuanhui/awx-k8s-sub2api.git
+     cd awx-k8s-sub2api
      ```
-   - 如果 `awx-sub2api` 已经存在，请先使用 `rm -rf awx-sub2api` 删除，然后再重新克隆。
+   - 如果 `awx-k8s-sub2api` 已经存在，请先使用 `rm -rf awx-k8s-sub2api` 删除，然后再重新克隆。
 2. 在 AWX Web UI 中创建 Project：
    - SCM Type: `Git`
    - SCM URL: 你的仓库 URL

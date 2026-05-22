@@ -20,7 +20,7 @@ sub2api_env_overrides: {}
 ansible_host_key_checking: false
 ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
-awx_k8s_work_dir: /home/opc/awx-sub2api
+awx_k8s_work_dir: /home/opc/awx-k8s-sub2api
 awx_k8s_subdir: k8s/awx
 awx_admin_user: admin
 awx_nodeport_port: 30080

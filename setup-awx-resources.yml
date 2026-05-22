@@ -13,7 +13,7 @@
 #   awx_host              : AWX の URL (デフォルト: http://140.83.58.183:30080)
 #   awx_username          : AWX ユーザー名 (デフォルト: admin)
 #   awx_org               : AWX 組織名 (デフォルト: Default)
-#   awx_scm_url           : リポジトリ URL (デフォルト: https://github.com/zhuchuanhui/awx-sub2api.git)
+#   awx_scm_url           : リポジトリ URL (デフォルト: https://github.com/zhuchuanhui/awx-k8s-sub2api.git)
 #   awx_scm_branch        : ブランチ (デフォルト: main)
 
 - name: AWX リソース初期セットアップ
@@ -28,7 +28,7 @@
     awx_org: "Default"
     awx_scm_url: "https://github.com/zhuchuanhui/awx-k8s-sub2api.git"
     awx_scm_branch: "main"
-    awx_project_name: "awx-sub2api"
+    awx_project_name: "awx-k8s-sub2api"
     awx_credential_name: "opc-machine-credential"
     awx_inventory_name: "sub2api-inventory"
     awx_api: "{{ awx_host }}/api/v2"
@@ -197,7 +197,7 @@
           scm_branch: "{{ awx_scm_branch }}"
           scm_update_on_launch: true
           scm_clean: true
-          description: "awx-sub2api リポジトリ"
+          description: "awx-k8s-sub2api リポジトリ"
         status_code: [200, 201]
       when: _project_check.json.count == 0
       register: _project_created
@@ -231,8 +231,8 @@
         validate_certs: false
       register: _project_status
       until: _project_status.json.status in ['successful', 'failed', 'canceled']
-      retries: 30
-      delay: 10
+      retries: 60
+      delay: 20
       when: _project_check.json.count == 0
 
     - name: SCM 同期失敗チェック
