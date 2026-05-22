@@ -117,15 +117,13 @@
 
     - name: SSH 秘密鍵をリモートに一時配置
       ansible.builtin.copy:
-        content: "{{ lookup('file', awx_ssh_private_key_file | expanduser) }}"
+        src: "{{ awx_ssh_private_key_file | expanduser }}"
         dest: "/home/{{ ansible_user }}/.awx_setup_key"
         mode: "0600"
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
       become: false
-      no_log: true
-      vars:
-        ansible_become: false
+      no_log: false
 
     - name: AWX リソースをセットアップ（setup-awx-resources.py 実行）
       ansible.builtin.command: >
