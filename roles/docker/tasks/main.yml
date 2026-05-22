@@ -1,10 +1,7 @@
 ---
 - name: Ensure dnf plugin package is present
-  ansible.builtin.dnf:
-    name: dnf-plugins-core
-    state: present
-  vars:
-    ansible_python_interpreter: "{{ _system_python | default('/usr/bin/python3') }}"
+  ansible.builtin.command: dnf install -y dnf-plugins-core
+  changed_when: false
 
 - name: Ensure Docker CE repository is configured
   ansible.builtin.get_url:
@@ -13,11 +10,8 @@
     mode: "0644"
 
 - name: Install Docker packages
-  ansible.builtin.dnf:
-    name: "{{ docker_packages }}"
-    state: "{{ docker_package_state }}"
-  vars:
-    ansible_python_interpreter: "{{ _system_python | default('/usr/bin/python3') }}"
+  ansible.builtin.command: dnf install -y {{ docker_packages | join(' ') }}
+  changed_when: false
 
 - name: Ensure docker group exists
   ansible.builtin.group:

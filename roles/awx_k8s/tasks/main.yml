@@ -1,10 +1,7 @@
 ---
 - name: Ensure dnf plugin package is present
-  ansible.builtin.dnf:
-    name: dnf-plugins-core
-    state: present
-  vars:
-    ansible_python_interpreter: "{{ _system_python | default('/usr/bin/python3') }}"
+  ansible.builtin.command: dnf install -y dnf-plugins-core
+  changed_when: false
 
 - name: Ensure Docker CE repository is configured
   ansible.builtin.get_url:
@@ -13,19 +10,8 @@
     mode: "0644"
 
 - name: Install OS packages for Kubernetes bootstrap
-  ansible.builtin.dnf:
-    name:
-      - curl
-      - tar
-      - socat
-      - conntrack-tools
-      - iproute-tc
-      - containerd.io
-      - firewalld
-      - git
-    state: present
-  vars:
-    ansible_python_interpreter: "{{ _system_python | default('/usr/bin/python3') }}"
+  ansible.builtin.command: dnf install -y curl tar socat conntrack-tools iproute-tc containerd.io firewalld git
+  changed_when: false
 
 - name: Set SELinux to permissive at runtime
   ansible.builtin.command: setenforce 0
@@ -129,15 +115,8 @@
     mode: "0644"
 
 - name: Install kubeadm, kubelet, and kubectl
-  ansible.builtin.dnf:
-    name:
-      - kubelet
-      - kubeadm
-      - kubectl
-    state: present
-    disable_excludes: kubernetes
-  vars:
-    ansible_python_interpreter: "{{ _system_python | default('/usr/bin/python3') }}"
+  ansible.builtin.command: dnf install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+  changed_when: false
 
 - name: Ensure kubelet is running
   ansible.builtin.systemd:
