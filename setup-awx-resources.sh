@@ -89,7 +89,7 @@ echo " AWX リソースセットアップ開始"
 echo "=============================="
 echo "  Playbook : ${PLAYBOOK}"
 echo "  SSH key  : ${SSH_KEY_FILE}"
-echo "  AWX host : http://140.83.58.183:30080"
+echo "  AWX host : http://150.230.63.139:30080"
 echo ""
 
 # ANSIBLE_CONFIG で一時 cfg（become=False）を使用
@@ -98,4 +98,4 @@ ANSIBLE_CONFIG="${CFG_TMP}" ansible-playbook "${PLAYBOOK}" \
 
 echo ""
 echo "セットアップ完了！"
-echo "AWX Web UI: http://140.83.58.183:30080/#/templates"
+echo "AWX Web UI: http://150.230.63.139:30080/#/templates"

@@ -10,7 +10,7 @@
 #   awx_ssh_private_key_file : opc の SSH 秘密鍵ファイルパス
 #
 # オプション変数 (デフォルト値あり):
-#   awx_host              : AWX の URL (デフォルト: http://140.83.58.183:30080)
+#   awx_host              : AWX の URL (デフォルト: http://150.230.63.139:30080)
 #   awx_username          : AWX ユーザー名 (デフォルト: admin)
 #   awx_org               : AWX 組織名 (デフォルト: Default)
 #   awx_scm_url           : リポジトリ URL (デフォルト: https://github.com/zhuchuanhui/awx-k8s-sub2api.git)
@@ -23,7 +23,7 @@
   become: false
 
   vars:
-    awx_host: "http://140.83.58.183:30080"
+    awx_host: "http://150.230.63.139:30080"
     awx_username: "admin"
     awx_org: "Default"
     awx_scm_url: "https://github.com/zhuchuanhui/awx-k8s-sub2api.git"
@@ -33,7 +33,7 @@
     awx_inventory_name: "sub2api-inventory"
     awx_api: "{{ awx_host }}/api/v2"
     awx_ssh_host_key_opts: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-    awx_proxy_ssh_args: "{{ awx_ssh_host_key_opts }} -o ProxyJump=opc@140.83.58.183"
+    awx_proxy_ssh_args: "{{ awx_ssh_host_key_opts }} -o ProxyJump=opc@150.230.63.139"
     awx_inventory_variables: |
       ansible_user: opc
       ansible_become: true
@@ -49,9 +49,9 @@
     awx_inventory_groups:
       - name: awx_controller
         hosts:
-          - name: instance-20251213-ARM_fw
+          - name: arm-instance_fw
             vars:
-              ansible_host: "140.83.58.183"
+              ansible_host: "150.230.63.139"
       - name: sub2api_targets
         hosts:
           - name: amd-instance-internal1
@@ -74,9 +74,9 @@
       # 個別ホスト用グループ（Survey で選択可能）
       - name: awx_controller_host
         hosts:
-          - name: instance-20251213-ARM_fw
+          - name: arm-instance_fw
             vars:
-              ansible_host: "140.83.58.183"
+              ansible_host: "150.230.63.139"
       - name: amd_instance_internal1
         hosts:
           - name: amd-instance-internal1
@@ -515,7 +515,7 @@
                 - arm_instance
                 - amd_instance_1
                 - amd_instance_2
-                - instance-20251213-ARM_fw
+                - arm-instance_fw
               default:
                 - awx_controller_host
         status_code: [200, 201, 204]

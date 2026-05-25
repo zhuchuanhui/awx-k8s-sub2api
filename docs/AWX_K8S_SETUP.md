@@ -1,6 +1,6 @@
 # AWX on Kubernetes Setup
 
-このドキュメントは、`instance-20251213-ARM_fw` 上で通常の `Kubernetes`
+このドキュメントは、`arm-instance_fw` 上で通常の `Kubernetes`
 を使って AWX を作成し、あとから同じ手順を何度でも再実行できるように
 まとめたものです。
 
@@ -8,7 +8,7 @@
 
 ## 前提
 
-- 対象ホスト: `instance-20251213-ARM_fw`
+- 対象ホスト: `arm-instance_fw`
 - OS: Oracle Linux 8 / 9 系を想定
 - AWX は Kubernetes 上で動かす
 - Kubernetes は `kubeadm` ベースの標準構成を使う
@@ -38,10 +38,10 @@
 
 ## 1. ホスト準備
 
-`instance-20251213-ARM_fw` に SSH で接続します。
+`arm-instance_fw` に SSH で接続します。
 
 ```bash
-ssh instance-20251213-ARM_fw
+ssh arm-instance_fw
 ```
 
 必要であれば更新を入れます。
@@ -204,7 +204,7 @@ kubectl get storageclass
 
 ## 7. AWX Operator 用ファイルの配置
 
-このリポジトリを `instance-20251213-ARM_fw` に配置します。
+このリポジトリを `arm-instance_fw` に配置します。
 方法は `git clone` でも `scp` でも構いません。
 
 例:
@@ -261,7 +261,7 @@ kubectl -n awx get secret awx-admin-password -o jsonpath="{.data.password}" | ba
 ブラウザ:
 
 ```text
-http://140.83.58.183:30080/
+http://150.230.63.139:30080/
 ```
 
 初期ユーザー:
@@ -306,15 +306,15 @@ AWX にログインしたら以下を作ります。
 ## 12. 内部ホストへの到達
 
 `amd-instance-internal1` と `amd-instance-internal2` は
-`instance-20251213-ARM_fw` 経由で届く前提です。
+`arm-instance_fw` 経由で届く前提です。
 
 このリポジトリの `inventory/hosts.yml` には、以下が設定されています。
 
 ```yaml
-ansible_ssh_common_args: -o ProxyJump=opc@140.83.58.183
+ansible_ssh_common_args: -o ProxyJump=opc@150.230.63.139
 ```
 
-つまり AWX が `instance-20251213-ARM_fw` 上で動いていれば、そのまま同じ踏み台経路を使えます。
+つまり AWX が `arm-instance_fw` 上で動いていれば、そのまま同じ踏み台経路を使えます。
 
 ## 13. よく使う確認コマンド
 

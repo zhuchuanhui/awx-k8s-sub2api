@@ -4,6 +4,8 @@
 # using Kubernetes on the AWX controller host.
 - name: Build AWX controller server on Kubernetes
   hosts: "{{ limit | default(default_limit) }}"
+  vars_files:
+    - "{{ 'group_vars/low_mem.yml' if inventory_hostname in groups['low_mem_hosts'] else 'group_vars/all.yml' }}"
   gather_facts: false
   become: true
   vars:

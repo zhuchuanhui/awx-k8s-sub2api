@@ -7,7 +7,7 @@ AWX 向け Ansible 構成です。
 
 ### AWX 配置ホスト
 
-- `instance-20251213-ARM_fw` (`140.83.58.183`)
+- `arm-instance_fw` (`150.230.63.139`)
 
 ### 配布先ホスト
 
@@ -36,7 +36,7 @@ AWX 向け Ansible 構成です。
 ### 前提条件
 
 - ローカルに Ansible がインストールされていること
-- `instance-20251213-ARM_fw` (`140.83.58.183`) へ `opc` ユーザーで SSH できること
+- `arm-instance_fw` (`150.230.63.139`) へ `opc` ユーザーで SSH できること
 - AWX に登録する **opc 用 SSH 秘密鍵**がローカルにあること（既定: `~/.ssh/id_rsa`）
 - `inventory/hosts.yml` が環境に合わせて用意されていること（未作成なら `inventory/hosts.example.yml` をコピーして編集）
 
@@ -89,7 +89,7 @@ ansible-playbook -i inventory/hosts.yml deploy-awx.yml -e awx_setup_resources=fa
 
 #### 4. AWX Web UI で sub2api を配布する
 
-1. ブラウザで [AWX Templates](http://140.83.58.183:30080/#/templates) を開く
+1. ブラウザで [AWX Templates](http://150.230.63.139:30080/#/templates) を開く
 2. 初回構築直後は **`build-awx-controller`** が不要な場合があります（ローカル Ansible で既に構築済みのため）
 3. Job Template **`deploy-sub2api`** を起動し、各 `sub2api_targets` へ配布する
 
@@ -134,7 +134,7 @@ python3 setup-awx-resources.py ~/.ssh/id_rsa '<上記パスワード>'
    - 例: `/home/opc/awx-k8s-sub2api` に `git clone` または `scp` で配置します。
    - 例:
      ```bash
-     ssh opc@140.83.58.183
+     ssh opc@150.230.63.139
      cd /home/opc
      rm -rf awx-k8s-sub2api
      git clone https://github.com/zhuchuanhui/awx-k8s-sub2api.git
@@ -150,7 +150,7 @@ python3 setup-awx-resources.py ~/.ssh/id_rsa '<上記パスワード>'
    - SSH private key: `opc` の秘密鍵
    - Privilege Escalation: sudo
 4. Inventory を作成し、`inventory/hosts.yml` を取り込むか、AWX 上で同じホストとグループを定義します。
-   - `awx_controller` グループには `instance-20251213-ARM_fw` を登録
+   - `awx_controller` グループには `arm-instance_fw` を登録
    - `sub2api_targets` グループには対象ホストを登録
 5. Job Template を 4 つ作成します。
    - `build-awx-controller`: Project = `awx-k8s-sub2api`, Playbook = `deploy-awx.yml`, Inventory = `awx_controller`, Credential = Machine, Privilege Escalation 有効, Variables の `Prompt on Launch` 有効 (ホスト選択可能)
@@ -236,15 +236,15 @@ ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev
 `ProxyJump` 利用ホスト（`amd-instance-internal*`）はホスト変数で両方を指定します。
 
 ```yaml
-ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyJump=opc@140.83.58.183"
+ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyJump=opc@150.230.63.139"
 ```
 
 リポジトリ最新版の `deploy-sub2api.yml` にも playbook 側の既定値があります。AWX Project の **SCM 同期**後に Job を再実行してください。
 
 ### 補足
 
-- `instance-20251213-ARM_fw` は AWX の管理ホストであり、この playbook の配布先ではありません。
-- `amd-instance-internal1` と `amd-instance-internal2` は `ProxyJump=opc@140.83.58.183` を使う前提です。
+- `arm-instance_fw` は AWX の管理ホストであり、この playbook の配布先ではありません。
+- `amd-instance-internal1` と `amd-instance-internal2` は `ProxyJump=opc@150.230.63.139` を使う前提です。
 - playbook は公式の `docker-deploy.sh` を取得し、`docker-compose.yml` が未作成のときだけ初期生成を行います。
 - `.env` は毎回 Ansible から生成するため、AWX 側の変数を正とする運用にできます。
 - `kubeadm` ベースの Kubernetes で AWX を作る手順は `docs/AWX_K8S_SETUP.md` を参照してください。
@@ -282,7 +282,7 @@ This repository contains an AWX-friendly Ansible layout for deploying
 
 ### AWX host
 
-- `instance-20251213-ARM_fw` (`140.83.58.183`)
+- `arm-instance_fw` (`150.230.63.139`)
 
 ### Deployment targets
 
@@ -311,7 +311,7 @@ This repository contains an AWX-friendly Ansible layout for deploying
 ### Prerequisites
 
 - Ansible installed on your workstation
-- SSH access to `instance-20251213-ARM_fw` (`140.83.58.183`) as `opc`
+- SSH access to `arm-instance_fw` (`150.230.63.139`) as `opc`
 - Local `opc` SSH private key (default: `~/.ssh/id_rsa`)
 - `inventory/hosts.yml` prepared for your environment (copy from `inventory/hosts.example.yml`)
 
@@ -358,7 +358,7 @@ ANSIBLE_LOCAL_TEMP=/tmp/ansible-local \
 
 #### 4. Deploy sub2api from AWX UI
 
-1. Open [AWX Templates](http://140.83.58.183:30080/#/templates)
+1. Open [AWX Templates](http://150.230.63.139:30080/#/templates)
 2. Skip `build-awx-controller` if AWX was already built by local Ansible
 3. Launch **`deploy-sub2api`** to deploy to `sub2api_targets`
 
@@ -405,7 +405,7 @@ If you do not use `setup-awx-resources.py`, configure AWX in the Web UI after `d
 1. Place this repository on the AWX controller host or make it accessible via Git.
    - Example:
      ```bash
-     ssh opc@140.83.58.183
+     ssh opc@150.230.63.139
      cd /home/opc
      rm -rf awx-k8s-sub2api
      git clone https://github.com/zhuchuanhui/awx-k8s-sub2api.git
@@ -418,7 +418,7 @@ If you do not use `setup-awx-resources.py`, configure AWX in the Web UI after `d
    - Branch/Revision: `main`
 3. Create a Machine Credential using the `opc` SSH key and enable sudo.
 4. Create Inventory and define the same hosts/groups as `inventory/hosts.yml`.
-   - `awx_controller` group for `instance-20251213-ARM_fw`
+   - `awx_controller` group for `arm-instance_fw`
    - `sub2api_targets` group for the target hosts
 5. Create three Job Templates:
    - `build-awx-controller`: playbook `deploy-awx.yml`, inventory `awx_controller`, credential `Machine`, enable privilege escalation
@@ -489,8 +489,8 @@ sub2api_env_overrides:
 
 ### Notes
 
-- `instance-20251213-ARM_fw` is the AWX controller host and is not a deployment target for this playbook.
-- `amd-instance-internal1` and `amd-instance-internal2` are configured to use `ProxyJump=opc@140.83.58.183`.
+- `arm-instance_fw` is the AWX controller host and is not a deployment target for this playbook.
+- `amd-instance-internal1` and `amd-instance-internal2` are configured to use `ProxyJump=opc@150.230.63.139`.
 - The playbook downloads the official `docker-deploy.sh` bootstrap script and only initializes files when `docker-compose.yml` does not already exist.
 - The `.env` file is rendered from Ansible variables each run, so AWX can remain the source of truth.
 - For `kubeadm`-based Kubernetes setup, see `docs/AWX_K8S_SETUP.md`.
@@ -528,7 +528,7 @@ This produces a tarball containing the playbooks, role code, docs, sample invent
 
 ### AWX 主机
 
-- `instance-20251213-ARM_fw` (`140.83.58.183`)
+- `arm-instance_fw` (`150.230.63.139`)
 
 ### 部署目标主机
 
@@ -557,7 +557,7 @@ This produces a tarball containing the playbooks, role code, docs, sample invent
 ### 前提条件
 
 - 本地已安装 Ansible
-- 能以 `opc` 用户 SSH 到 `instance-20251213-ARM_fw` (`140.83.58.183`)
+- 能以 `opc` 用户 SSH 到 `arm-instance_fw` (`150.230.63.139`)
 - 本地有 **opc 用 SSH 私钥**（默认 `~/.ssh/id_rsa`）
 - 已准备 `inventory/hosts.yml`（可从 `inventory/hosts.example.yml` 复制）
 
@@ -604,7 +604,7 @@ ANSIBLE_LOCAL_TEMP=/tmp/ansible-local \
 
 #### 4. 在 AWX UI 中部署 sub2api
 
-1. 打开 [AWX Templates](http://140.83.58.183:30080/#/templates)
+1. 打开 [AWX Templates](http://150.230.63.139:30080/#/templates)
 2. 若本地 Ansible 已构建 AWX，可跳过 `build-awx-controller`
 3. 启动 **`deploy-sub2api`** 部署到各 `sub2api_targets`
 
@@ -643,7 +643,7 @@ ANSIBLE_LOCAL_TEMP=/tmp/ansible-local \
 1. 将此仓库放置到 AWX 控制器服务器，或通过 Git 使其可被访问。
    - 示例：
      ```bash
-     ssh opc@140.83.58.183
+     ssh opc@150.230.63.139
      cd /home/opc
      rm -rf awx-k8s-sub2api
      git clone https://github.com/zhuchuanhui/awx-k8s-sub2api.git
@@ -656,7 +656,7 @@ ANSIBLE_LOCAL_TEMP=/tmp/ansible-local \
    - Branch/Revision: `main`
 3. 创建 Machine Credential，使用 `opc` 的 SSH 私钥，并启用 sudo。
 4. 创建 Inventory，并定义与 `inventory/hosts.yml` 相同的主机与组。
-   - `awx_controller` 组包含 `instance-20251213-ARM_fw`
+   - `awx_controller` 组包含 `arm-instance_fw`
    - `sub2api_targets` 组包含目标主机
 5. 创建三个 Job Template：
    - `build-awx-controller`: playbook `deploy-awx.yml`，inventory `awx_controller`，credential `Machine`，启用 privilege escalation
@@ -727,8 +727,8 @@ sub2api_env_overrides:
 
 ### 说明
 
-- `instance-20251213-ARM_fw` 是 AWX 控制主机，不是这个 playbook 的部署目标。
-- `amd-instance-internal1` 和 `amd-instance-internal2` 默认通过 `ProxyJump=opc@140.83.58.183` 连接。
+- `arm-instance_fw` 是 AWX 控制主机，不是这个 playbook 的部署目标。
+- `amd-instance-internal1` 和 `amd-instance-internal2` 默认通过 `ProxyJump=opc@150.230.63.139` 连接。
 - playbook 会下载官方 `docker-deploy.sh` 引导脚本，并且仅在 `docker-compose.yml` 不存在时执行初始化。
 - `.env` 文件会在每次执行时由 Ansible 重新生成，因此可以将 AWX 变量作为唯一配置来源。
 - 如果要在基于 `kubeadm` 的 Kubernetes 上部署 AWX，请参考 `docs/AWX_K8S_SETUP.md`。

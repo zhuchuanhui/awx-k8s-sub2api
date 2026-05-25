@@ -21,7 +21,7 @@ import time
 import yaml
 
 # ── 設定 ────────────────────────────────────────────────────
-AWX_HOST     = "http://140.83.58.183:30080"
+AWX_HOST     = "http://150.230.63.139:30080"
 AWX_USERNAME = "admin"
 AWX_ORG      = "Default"
 SCM_URL      = "https://github.com/zhuchuanhui/awx-k8s-sub2api.git"
@@ -32,7 +32,7 @@ INV_NAME     = "sub2api-inventory"
 
 # AWX ジョブランナーはプロジェクト ansible.cfg を読まないため SSH オプションを inventory 変数で渡す
 SSH_HOST_KEY_OPTS = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-PROXY_JUMP_TARGET = "opc@140.83.58.183"
+PROXY_JUMP_TARGET = "opc@150.230.63.139"
 PROXY_SSH_ARGS = f"{SSH_HOST_KEY_OPTS} -o ProxyJump={PROXY_JUMP_TARGET}"
 
 # Inventory 定義（inventory/hosts.yml と同じ構成）
@@ -40,7 +40,7 @@ INVENTORY_GROUPS = [
     {
         "name": "awx_controller",
         "hosts": [
-            {"name": "instance-20251213-ARM_fw", "vars": {"ansible_host": "140.83.58.183"}},
+            {"name": "arm-instance_fw", "vars": {"ansible_host": "150.230.63.139"}},
         ],
     },
     {

@@ -14,8 +14,8 @@
 
 ### セキュリティ（Security considerations）
 
-- AWX controller は、ユーザーが変更しない限り `instance-20251213-ARM_fw`。
-- `amd-instance-internal1` と `amd-instance-internal2` は `ProxyJump=opc@140.83.58.183` 前提を崩さない。
+- AWX controller は、ユーザーが変更しない限り `arm-instance_fw`。
+- `amd-instance-internal1` と `amd-instance-internal2` は `ProxyJump=opc@150.230.63.139` 前提を崩さない。
 - SSH 秘密鍵、AWX admin password、sub2api `.env` の秘密値、bootstrap で出る一時パスワードはコミットしない。
 - `host_key_checking = False` は利便性のための設定なので、本番化時はリスクを説明する。
 
@@ -51,8 +51,8 @@ This repository deploys `sub2api` to Oracle Linux hosts and builds AWX itself on
 
 ### Security considerations
 
-- Unless changed by the user, the AWX controller is `instance-20251213-ARM_fw`.
-- Keep the `ProxyJump=opc@140.83.58.183` assumption for internal hosts.
+- Unless changed by the user, the AWX controller is `arm-instance_fw`.
+- Keep the `ProxyJump=opc@150.230.63.139` assumption for internal hosts.
 - Do not commit SSH private keys, AWX admin passwords, sub2api `.env` secrets, or one-time bootstrap passwords.
 - `host_key_checking = False` is convenient but risky for production; explain that risk when relevant.
 
@@ -88,8 +88,8 @@ This repository deploys `sub2api` to Oracle Linux hosts and builds AWX itself on
 
 ### 安全注意事项
 
-- 除非用户变更，AWX 控制节点是 `instance-20251213-ARM_fw`。
-- 保持内部主机使用 `ProxyJump=opc@140.83.58.183` 的前提。
+- 除非用户变更，AWX 控制节点是 `arm-instance_fw`。
+- 保持内部主机使用 `ProxyJump=opc@150.230.63.139` 的前提。
 - 不要提交 SSH 私钥、AWX admin password、sub2api `.env` 秘密值或 bootstrap 一次性密码。
 - `host_key_checking = False` 便于操作但有生产风险，相关场景需说明。
 
